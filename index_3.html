@@ -1,0 +1,425 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>App Login & Calculator</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;700&display=swap" rel="stylesheet">
+  <style>
+    /* * Global Styles & Device Frame
+     * The app is designed to fit inside a "frame" for a clean, app-like feel.
+     * This frame scales and adapts based on screen size.
+     */
+    :root {
+      --primary-accent: #00e0ff; /* A crisp, techy blue */
+      --secondary-accent: #00c1d6;
+      --text-light: #f0f0f0;
+      --text-dark: #1f2833;
+      --card-bg: rgba(255, 255, 255, 0.08);
+      --glass-filter: blur(16px) saturate(150%);
+      --card-border: 1px solid rgba(255, 255, 255, 0.1);
+      --card-shadow: 0 15px 40px rgba(0, 0, 0, 0.5);
+    }
+
+    body {
+      font-family: 'Inter', sans-serif;
+      margin: 0;
+      height: 100vh;
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      overflow: hidden;
+      background: #0b0c10;
+      background-size: cover;
+      position: relative;
+    }
+
+    /* Background pattern */
+    body::before {
+  content: "";
+  position: absolute;
+  inset: 0;
+  background: url("Gemini_Generated_Image_mb82g7mb82g7mb82.png") no-repeat center center / cover;
+  z-index: -1;
+  filter: brightness(0.6) blur(2px); /* Optional: darken & blur for readability */
+}
+
+    }
+
+    /* Main device frame container */
+    .device-frame {
+      position: relative;
+      width: 360px; /* Standard phone width */
+      height: 640px; /* Standard phone height */
+      background: rgba(19, 23, 29, 0.9);
+      backdrop-filter: blur(20px);
+      border-radius: 30px;
+      box-shadow: 0 25px 50px rgba(0, 0, 0, 0.5), inset 0 0 0 1px rgba(255, 255, 255, 0.05);
+      overflow: hidden;
+      display: flex;
+      justify-content: center;
+      align-items: center;
+    }
+
+    /* ---
+     * Responsive Design for different screen sizes
+     * ---
+     */
+    @media (max-width: 768px) {
+      .device-frame {
+        width: 100vw;
+        height: 100vh;
+        border-radius: 0;
+        box-shadow: none;
+      }
+    }
+
+    /* ---
+     * Login & Calculator Card Styles
+     * ---
+     */
+    .login-container,
+    .calculator-container {
+      position: absolute;
+      inset: 0;
+      padding: 2rem;
+      color: var(--text-light);
+      display: flex;
+      flex-direction: column;
+      justify-content: center;
+      transition: transform 0.6s cubic-bezier(0.68, -0.55, 0.27, 1.55), opacity 0.6s ease;
+    }
+
+    .calculator-container {
+      transform: translateX(150%);
+      opacity: 0;
+    }
+
+    .login-container.slide-out {
+      transform: translateX(-150%);
+      opacity: 0;
+    }
+    .calculator-container.slide-in {
+      transform: translateX(0);
+      opacity: 1;
+    }
+
+    .title {
+      font-size: 2rem;
+      font-weight: 700;
+      margin-bottom: 2rem;
+      color: var(--primary-accent);
+      text-align: center;
+    }
+
+    .input-group {
+      margin-bottom: 1.5rem;
+      position: relative;
+    }
+    .input-group label {
+      display: block;
+      margin-bottom: 0.5rem;
+      font-size: 0.9rem;
+      color: rgba(255, 255, 255, 0.7);
+    }
+    .input-group input {
+      width: 100%;
+      padding: 14px;
+      border-radius: 12px;
+      border: 1px solid rgba(255, 255, 255, 0.1);
+      background: rgba(255, 255, 255, 0.05);
+      color: var(--text-light);
+      font-size: 1rem;
+      outline: none;
+      transition: border-color 0.3s ease, box-shadow 0.3s ease;
+    }
+    .input-group input:focus {
+      border-color: var(--primary-accent);
+      box-shadow: 0 0 0 2px rgba(0, 224, 255, 0.3);
+    }
+
+    .toggle-password {
+      position: absolute;
+      right: 15px;
+      bottom: 15px;
+      cursor: pointer;
+      color: rgba(255, 255, 255, 0.6);
+      transition: color 0.3s ease;
+    }
+    .toggle-password:hover {
+      color: var(--primary-accent);
+    }
+
+    .login-btn {
+      width: 100%;
+      padding: 16px;
+      border: none;
+      border-radius: 12px;
+      background: linear-gradient(135deg, var(--primary-accent), var(--secondary-accent));
+      color: var(--text-dark);
+      font-size: 1.1rem;
+      font-weight: bold;
+      cursor: pointer;
+      transition: transform 0.3s ease, box-shadow 0.3s ease;
+      margin-top: 1rem;
+      box-shadow: 0 5px 15px rgba(0, 0, 0, 0.2);
+    }
+    .login-btn:hover {
+      transform: translateY(-2px);
+      box-shadow: 0 8px 20px rgba(0, 224, 255, 0.3);
+    }
+
+    .error-message {
+      color: #ff6b6b;
+      margin-top: 1rem;
+      text-align: center;
+      font-size: 0.9rem;
+      opacity: 0;
+      transition: opacity 0.4s ease;
+    }
+    .error-message.show {
+      opacity: 1;
+    }
+
+    /* Calculator */
+    .calculator-display {
+      background: rgba(255, 255, 255, 0.05);
+      border-radius: 12px;
+      padding: 15px;
+      margin-bottom: 1rem;
+      text-align: right;
+      color: var(--text-light);
+      font-family: 'Roboto Mono', monospace;
+      min-height: 80px;
+    }
+    .previous-operand {
+      font-size: 1.1em;
+      color: rgba(255, 255, 255, 0.6);
+      min-height: 1.2em;
+    }
+    .current-operand {
+      font-size: 2.5em;
+      font-weight: bold;
+      word-wrap: break-word;
+      word-break: break-all;
+      min-height: 1.2em;
+    }
+
+    .calculator-buttons {
+      display: grid;
+      grid-template-columns: repeat(4, 1fr);
+      gap: 10px;
+    }
+    .btn {
+      min-height: 60px;
+      border-radius: 15px;
+      font-size: 1.2em;
+      border: none;
+      cursor: pointer;
+      transition: background-color 0.2s ease, transform 0.1s ease;
+      background: rgba(255, 255, 255, 0.05);
+      color: var(--text-light);
+    }
+    .btn:active {
+      transform: scale(0.95);
+    }
+
+    .btn.digit, .btn.decimal {
+      background: rgba(255, 255, 255, 0.05);
+    }
+    .btn.digit:hover, .btn.decimal:hover {
+      background: rgba(255, 255, 255, 0.1);
+    }
+    .btn.operator {
+      background: var(--secondary-accent);
+      color: var(--text-dark);
+    }
+    .btn.operator:hover {
+      background: var(--primary-accent);
+    }
+    .btn.equals-btn {
+      grid-column: span 2;
+      background: linear-gradient(135deg, var(--primary-accent), var(--secondary-accent));
+      color: var(--text-dark);
+      font-weight: bold;
+      font-size: 1.4em;
+    }
+    .btn.clear-btn, .btn.all-clear-btn, .btn.backspace-btn {
+      background: #444;
+      color: var(--text-light);
+    }
+    .btn.clear-btn:hover, .btn.all-clear-btn:hover, .btn.backspace-btn:hover {
+      background: #555;
+    }
+  </style>
+</head>
+<body>
+  <div class="device-frame">
+    <!-- Login Card -->
+    <div class="login-container" id="login-container">
+      <h2 class="title">Log In</h2>
+      <form id="login-form">
+        <div class="input-group">
+          <label for="username">Username</label>
+          <input type="text" id="username" name="username" required>
+        </div>
+        <div class="input-group">
+          <label for="password">Password</label>
+          <input type="password" id="password" name="password" required>
+          <span class="toggle-password" id="toggle-password">👁️</span>
+        </div>
+        <button type="submit" class="login-btn">Log In</button>
+      </form>
+      <p id="error-message" class="error-message"></p>
+    </div>
+
+    <!-- Calculator Card -->
+    <div class="calculator-container" id="calculator-container">
+      <h2 class="title">Calculator</h2>
+      <div class="calculator-display">
+        <div class="previous-operand" id="previous-operand"></div>
+        <div class="current-operand" id="current-operand">0</div>
+      </div>
+      <div class="calculator-buttons">
+        <button class="btn all-clear-btn" value="AC">AC</button>
+        <button class="btn clear-btn" value="C">C</button>
+        <button class="btn operator" value="(">(</button>
+        <button class="btn operator" value=")">)</button>
+        <button class="btn digit" value="7">7</button>
+        <button class="btn digit" value="8">8</button>
+        <button class="btn digit" value="9">9</button>
+        <button class="btn operator" value="/">÷</button>
+        <button class="btn digit" value="4">4</button>
+        <button class="btn digit" value="5">5</button>
+        <button class="btn digit" value="6">6</button>
+        <button class="btn operator" value="*">×</button>
+        <button class="btn digit" value="1">1</button>
+        <button class="btn digit" value="2">2</button>
+        <button class="btn digit" value="3">3</button>
+        <button class="btn operator" value="-">−</button>
+        <button class="btn backspace-btn" value="del">⌫</button>
+        <button class="btn digit" value="0">0</button>
+        <button class="btn decimal" value=".">.</button>
+        <button class="btn operator" value="+">+</button>
+        <button class="btn equals-btn" value="=">=</button>
+      </div>
+    </div>
+  </div>
+
+  <script>
+    document.addEventListener('DOMContentLoaded', () => {
+      const loginForm = document.getElementById('login-form');
+      const loginContainer = document.getElementById('login-container');
+      const calculatorContainer = document.getElementById('calculator-container');
+      const errorMessage = document.getElementById('error-message');
+      const togglePassword = document.getElementById('toggle-password');
+      const passwordInput = document.getElementById('password');
+
+      // Toggle password visibility
+      togglePassword.addEventListener('click', () => {
+        const type = passwordInput.type === 'password' ? 'text' : 'password';
+        passwordInput.type = type;
+        togglePassword.textContent = type === 'password' ? '👁️' : '🔒';
+      });
+
+      // Login check
+      loginForm.addEventListener('submit', (e) => {
+        e.preventDefault();
+        const username = document.getElementById('username').value;
+        const password = document.getElementById('password').value;
+
+        if (username === 'admin' && password === 'password') {
+          loginContainer.classList.add('slide-out');
+          calculatorContainer.classList.add('slide-in');
+          errorMessage.classList.remove('show');
+        } else {
+          errorMessage.textContent = 'Invalid username or password.';
+          errorMessage.classList.add('show');
+        }
+      });
+
+      // Calculator logic
+      const prevEl = document.getElementById('previous-operand');
+      const currEl = document.getElementById('current-operand');
+      const buttons = document.querySelector('.calculator-buttons');
+      let currentInput = '';
+      let previousResult = '';
+
+      const clear = () => {
+        currentInput = '';
+        previousResult = '';
+        updateDisplay();
+      };
+
+      const deleteLast = () => {
+        currentInput = currentInput.slice(0, -1);
+        updateDisplay();
+      };
+
+      const append = (value) => {
+        // Prevent multiple decimals
+        if (value === '.' && currentInput.includes('.')) return;
+        currentInput += value;
+        updateDisplay();
+      };
+
+      const compute = () => {
+        try {
+          const expression = currentInput.replace(/×/g, '*').replace(/÷/g, '/');
+          const result = eval(expression);
+
+          if (!isFinite(result)) {
+            currEl.textContent = 'Error';
+            previousResult = '';
+            currentInput = '';
+            return;
+          }
+
+          previousResult = currentInput + ' =';
+          currentInput = result.toString();
+        } catch (error) {
+          currEl.textContent = 'Error';
+          previousResult = '';
+          currentInput = '';
+        }
+        updateDisplay();
+      };
+
+      const updateDisplay = () => {
+        if (previousResult) {
+          prevEl.textContent = previousResult;
+        } else {
+          prevEl.textContent = '';
+        }
+        currEl.textContent = currentInput || '0';
+      };
+
+      buttons.addEventListener('click', (e) => {
+        const value = e.target.value;
+        if (!value) return;
+
+        if (e.target.classList.contains('digit') || e.target.classList.contains('decimal')) {
+          append(e.target.innerText);
+        } else if (e.target.classList.contains('operator')) {
+          append(e.target.innerText);
+        } else if (e.target.classList.contains('equals-btn')) {
+          compute();
+        } else if (value === 'AC') {
+          clear();
+        } else if (value === 'del') {
+          deleteLast();
+        } else if (value === 'C') {
+          // New clear current entry button
+          currentInput = '';
+          updateDisplay();
+        }
+      });
+
+      clear();
+      updateDisplay();
+    });
+  </script>
+</body>
+</html>
