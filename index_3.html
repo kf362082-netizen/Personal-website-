@@ -38,14 +38,12 @@
 
     /* Background pattern */
     body::before {
-  content: "";
-  position: absolute;
-  inset: 0;
-  background: url("Gemini_Generated_Image_mb82g7mb82g7mb82.png") no-repeat center center / cover;
-  z-index: -1;
-  filter: brightness(0.6) blur(2px); /* Optional: darken & blur for readability */
-}
-
+      content: "";
+      position: absolute;
+      inset: 0;
+      background: url("Gemini_Generated_Image_mb82g7mb82g7mb82.png") no-repeat center center / cover;
+      z-index: -1;
+      filter: brightness(0.6) blur(2px); /* Optional: darken & blur for readability */
     }
 
     /* Main device frame container */
@@ -151,6 +149,32 @@
     .toggle-password:hover {
       color: var(--primary-accent);
     }
+    
+    /* Password validation styles */
+    .validation-list {
+      list-style: none;
+      padding: 0;
+      margin-top: -0.5rem;
+      font-size: 0.8rem;
+    }
+    .validation-list li {
+      color: #ff6b6b;
+      margin-bottom: 0.2rem;
+      display: flex;
+      align-items: center;
+    }
+    .validation-list li.valid {
+      color: #4CAF50; /* Green color for valid */
+    }
+    .validation-list li::before {
+      content: '✖';
+      margin-right: 0.5rem;
+      font-size: 0.9rem;
+    }
+    .validation-list li.valid::before {
+      content: '✔';
+      color: #4CAF50;
+    }
 
     .login-btn {
       width: 100%;
@@ -162,13 +186,19 @@
       font-size: 1.1rem;
       font-weight: bold;
       cursor: pointer;
-      transition: transform 0.3s ease, box-shadow 0.3s ease;
+      transition: transform 0.3s ease, box-shadow 0.3s ease, opacity 0.3s ease;
       margin-top: 1rem;
       box-shadow: 0 5px 15px rgba(0, 0, 0, 0.2);
     }
     .login-btn:hover {
       transform: translateY(-2px);
       box-shadow: 0 8px 20px rgba(0, 224, 255, 0.3);
+    }
+    .login-btn:disabled {
+        opacity: 0.5;
+        cursor: not-allowed;
+        transform: none;
+        box-shadow: none;
     }
 
     .error-message {
@@ -257,7 +287,6 @@
 </head>
 <body>
   <div class="device-frame">
-    <!-- Login Card -->
     <div class="login-container" id="login-container">
       <h2 class="title">Log In</h2>
       <form id="login-form">
@@ -270,12 +299,18 @@
           <input type="password" id="password" name="password" required>
           <span class="toggle-password" id="toggle-password">👁️</span>
         </div>
-        <button type="submit" class="login-btn">Log In</button>
+        <ul class="validation-list" id="password-requirements">
+            <li id="length">At least 8 characters</li>
+            <li id="lowercase">At least one lowercase letter</li>
+            <li id="uppercase">At least one uppercase letter</li>
+            <li id="digit">At least one digit</li>
+            <li id="symbol">At least one symbol</li>
+        </ul>
+        <button type="submit" class="login-btn" disabled>Log In</button>
       </form>
       <p id="error-message" class="error-message"></p>
     </div>
 
-    <!-- Calculator Card -->
     <div class="calculator-container" id="calculator-container">
       <h2 class="title">Calculator</h2>
       <div class="calculator-display">
@@ -310,116 +345,168 @@
 
   <script>
     document.addEventListener('DOMContentLoaded', () => {
-      const loginForm = document.getElementById('login-form');
-      const loginContainer = document.getElementById('login-container');
-      const calculatorContainer = document.getElementById('calculator-container');
-      const errorMessage = document.getElementById('error-message');
-      const togglePassword = document.getElementById('toggle-password');
-      const passwordInput = document.getElementById('password');
+    // --- Login & Password Validation Logic ---
+    const loginForm = document.getElementById('login-form');
+    const loginContainer = document.getElementById('login-container');
+    const calculatorContainer = document.getElementById('calculator-container');
+    const errorMessage = document.getElementById('error-message');
+    const togglePassword = document.getElementById('toggle-password');
+    const passwordInput = document.getElementById('password');
+    const loginBtn = document.querySelector('.login-btn');
+    
+    // UI elements for password validation feedback
+    const passwordCriteria = {
+        length: document.getElementById('length'),
+        lowercase: document.getElementById('lowercase'),
+        uppercase: document.getElementById('uppercase'),
+        digit: document.getElementById('digit'),
+        symbol: document.getElementById('symbol')
+    };
 
-      // Toggle password visibility
-      togglePassword.addEventListener('click', () => {
+    /**
+     * Validates a password against LUDS8 rules and updates the UI.
+     * @param {string} password The password string to validate.
+     * @returns {boolean} True if the password meets all criteria, otherwise false.
+     */
+    const validatePasswordAndUI = (password) => {
+        const hasMinLength = password.length >= 8;
+        const hasLowercase = /[a-z]/.test(password);
+        const hasUppercase = /[A-Z]/.test(password);
+        const hasDigit = /\d/.test(password);
+        // This regex checks for any character that is NOT a letter or a digit.
+        const hasSymbol = /[^a-zA-Z0-9]/.test(password);
+    
+        passwordCriteria.length.classList.toggle('valid', hasMinLength);
+        passwordCriteria.lowercase.classList.toggle('valid', hasLowercase);
+        passwordCriteria.uppercase.classList.toggle('valid', hasUppercase);
+        passwordCriteria.digit.classList.toggle('valid', hasDigit);
+        passwordCriteria.symbol.classList.toggle('valid', hasSymbol);
+    
+        return hasMinLength && hasLowercase && hasUppercase && hasDigit && hasSymbol;
+    };
+    
+    // Toggle password visibility
+    togglePassword.addEventListener('click', () => {
         const type = passwordInput.type === 'password' ? 'text' : 'password';
         passwordInput.type = type;
         togglePassword.textContent = type === 'password' ? '👁️' : '🔒';
-      });
+    });
 
-      // Login check
-      loginForm.addEventListener('submit', (e) => {
+    // Live password validation
+    passwordInput.addEventListener('input', () => {
+        const passwordIsValid = validatePasswordAndUI(passwordInput.value);
+        loginBtn.disabled = !passwordIsValid;
+        // Optionally clear the error message if the user starts typing again
+        errorMessage.classList.remove('show');
+    });
+
+    // Login check
+    loginForm.addEventListener('submit', (e) => {
         e.preventDefault();
         const username = document.getElementById('username').value;
-        const password = document.getElementById('password').value;
-
-        if (username === 'admin' && password === 'password') {
-          loginContainer.classList.add('slide-out');
-          calculatorContainer.classList.add('slide-in');
-          errorMessage.classList.remove('show');
+        const password = passwordInput.value;
+    
+        // Only allow login if both username is correct and password is valid (based on the mock logic)
+        if (username === 'Gwapoko' && validatePasswordAndUI(password)) {
+            // Note: The login password should be 'password' to match the mock login logic.
+            // A real app would check a database.
+            if (password === 'Kai1028.') {
+                loginContainer.classList.add('slide-out');
+                calculatorContainer.classList.add('slide-in');
+                errorMessage.classList.remove('show');
+            } else {
+                errorMessage.textContent = 'Invalid username or password.';
+                errorMessage.classList.add('show');
+            }
         } else {
-          errorMessage.textContent = 'Invalid username or password.';
-          errorMessage.classList.add('show');
+            errorMessage.textContent = 'Invalid username or password or password rules not met.';
+            errorMessage.classList.add('show');
         }
-      });
+    });
 
-      // Calculator logic
-      const prevEl = document.getElementById('previous-operand');
-      const currEl = document.getElementById('current-operand');
-      const buttons = document.querySelector('.calculator-buttons');
-      let currentInput = '';
-      let previousResult = '';
+    // --- Calculator Logic ---
+    const prevEl = document.getElementById('previous-operand');
+    const currEl = document.getElementById('current-operand');
+    const buttons = document.querySelector('.calculator-buttons');
+    let currentInput = '';
+    let previousResult = '';
 
-      const clear = () => {
+    const clear = () => {
         currentInput = '';
         previousResult = '';
         updateDisplay();
-      };
+    };
 
-      const deleteLast = () => {
+    const deleteLast = () => {
         currentInput = currentInput.slice(0, -1);
         updateDisplay();
-      };
+    };
 
-      const append = (value) => {
+    const append = (value) => {
         // Prevent multiple decimals
         if (value === '.' && currentInput.includes('.')) return;
+        // Prevent multiple operators unless the first character is a minus sign
+        if (['+', '*', '/'].includes(value) && ['+', '-', '*', '/'].includes(currentInput.slice(-1))) return;
         currentInput += value;
         updateDisplay();
-      };
-
-      const compute = () => {
+    };
+    
+    const compute = () => {
         try {
-          const expression = currentInput.replace(/×/g, '*').replace(/÷/g, '/');
-          const result = eval(expression);
-
-          if (!isFinite(result)) {
+            const expression = currentInput.replace(/×/g, '*').replace(/÷/g, '/');
+            // Safer alternative to eval()
+            const result = new Function('return ' + expression)();
+    
+            if (!isFinite(result)) {
+                currEl.textContent = 'Error';
+                previousResult = '';
+                currentInput = '';
+                return;
+            }
+    
+            previousResult = currentInput + ' =';
+            currentInput = result.toString();
+        } catch (error) {
             currEl.textContent = 'Error';
             previousResult = '';
             currentInput = '';
-            return;
-          }
-
-          previousResult = currentInput + ' =';
-          currentInput = result.toString();
-        } catch (error) {
-          currEl.textContent = 'Error';
-          previousResult = '';
-          currentInput = '';
         }
         updateDisplay();
-      };
+    };
 
-      const updateDisplay = () => {
+    const updateDisplay = () => {
         if (previousResult) {
-          prevEl.textContent = previousResult;
+            prevEl.textContent = previousResult;
         } else {
-          prevEl.textContent = '';
+            prevEl.textContent = '';
         }
         currEl.textContent = currentInput || '0';
-      };
+    };
 
-      buttons.addEventListener('click', (e) => {
+    buttons.addEventListener('click', (e) => {
         const value = e.target.value;
         if (!value) return;
 
         if (e.target.classList.contains('digit') || e.target.classList.contains('decimal')) {
-          append(e.target.innerText);
+            append(e.target.innerText);
         } else if (e.target.classList.contains('operator')) {
-          append(e.target.innerText);
+            append(e.target.innerText);
         } else if (e.target.classList.contains('equals-btn')) {
-          compute();
+            compute();
         } else if (value === 'AC') {
-          clear();
+            clear();
         } else if (value === 'del') {
-          deleteLast();
+            deleteLast();
         } else if (value === 'C') {
-          // New clear current entry button
-          currentInput = '';
-          updateDisplay();
+            currentInput = '';
+            updateDisplay();
         }
-      });
-
-      clear();
-      updateDisplay();
     });
+
+    // Initialize display
+    clear();
+    updateDisplay();
+});
   </script>
 </body>
 </html>
