@@ -121,7 +121,6 @@
             margin-bottom: 10px;
             box-shadow: 0 4px 10px rgba(0, 0, 0, 0.05);
             transition: all 0.3s ease;
-            cursor: pointer;
             position: relative;
         }
 
@@ -130,12 +129,53 @@
             box-shadow: 0 6px 15px rgba(0, 0, 0, 0.1);
         }
 
-        .task-item .task-text {
+        .task-item.completed {
+            background: #e9f5ff;
+        }
+
+        .task-item .task-content {
             flex-grow: 1;
+            display: flex;
+            align-items: center;
+        }
+
+        .task-item input[type="checkbox"] {
+            -webkit-appearance: none;
+            appearance: none;
+            width: 20px;
+            height: 20px;
+            border: 2px solid #ccc;
+            border-radius: 50%;
+            margin-right: 15px;
+            cursor: pointer;
+            position: relative;
+            outline: none;
+            transition: all 0.2s ease;
+        }
+
+        .task-item input[type="checkbox"]:checked {
+            background-color: #9b59b6;
+            border-color: #9b59b6;
+        }
+
+        .task-item input[type="checkbox"]:checked::after {
+            content: '\f00c';
+            font-family: 'Font Awesome 5 Free';
+            font-weight: 900;
+            color: #fff;
+            font-size: 12px;
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+        }
+
+        .task-item .task-text {
             word-break: break-word;
-            margin-right: 10px;
+            margin-right: 15px;
             user-select: none;
             transition: all 0.3s ease;
+            font-weight: 500;
         }
 
         .task-item.completed .task-text {
@@ -143,9 +183,22 @@
             color: #999;
         }
 
+        .task-item .task-date {
+            font-size: 0.9rem;
+            color: #666;
+            background: #f4f4f4;
+            border: 1px solid #ddd;
+            border-radius: 5px;
+            padding: 5px 8px;
+            outline: none;
+            transition: border-color 0.3s ease;
+            cursor: pointer;
+        }
+
         .task-item .action-buttons {
             display: flex;
             gap: 5px;
+            margin-left: auto; /* Push buttons to the right */
         }
 
         .action-buttons button {
@@ -189,6 +242,21 @@
             #add-task-btn {
                 width: 100%;
             }
+
+            .task-item {
+                flex-wrap: wrap;
+                gap: 10px;
+            }
+
+            .task-item .task-content {
+                width: 100%;
+            }
+
+            .task-item .action-buttons {
+                margin-left: 0;
+                width: 100%;
+                justify-content: flex-end;
+            }
         }
     </style>
 </head>
@@ -205,7 +273,7 @@
         </div>
 
         <ul id="task-list">
-            </ul>
+        </ul>
     </div>
     
     <script>
@@ -226,9 +294,20 @@
                 const listItem = document.createElement('li');
                 listItem.classList.add('task-item');
 
+                const taskContent = document.createElement('div');
+                taskContent.classList.add('task-content');
+
+                const checkbox = document.createElement('input');
+                checkbox.type = 'checkbox';
+                checkbox.checked = false;
+
                 const taskTextSpan = document.createElement('span');
                 taskTextSpan.classList.add('task-text');
                 taskTextSpan.textContent = taskText;
+
+                const dateInput = document.createElement('input');
+                dateInput.type = 'date';
+                dateInput.classList.add('task-date');
 
                 const buttonContainer = document.createElement('div');
                 buttonContainer.classList.add('action-buttons');
@@ -241,9 +320,14 @@
                 deleteBtn.classList.add('delete-btn');
                 deleteBtn.innerHTML = '<i class="fas fa-trash-alt"></i>';
 
+                taskContent.appendChild(checkbox);
+                taskContent.appendChild(taskTextSpan);
+                taskContent.appendChild(dateInput);
+
                 buttonContainer.appendChild(editBtn);
                 buttonContainer.appendChild(deleteBtn);
-                listItem.appendChild(taskTextSpan);
+
+                listItem.appendChild(taskContent);
                 listItem.appendChild(buttonContainer);
                 taskList.appendChild(listItem);
 
@@ -251,23 +335,26 @@
                 taskInput.value = '';
 
                 // Add event listeners for the new task
-                listItem.addEventListener('click', (e) => {
-                    // Check if the user clicked on a button, to avoid toggling completion
-                    if (e.target.closest('.action-buttons')) {
-                        return;
+                checkbox.addEventListener('change', () => {
+                    if (checkbox.checked) {
+                        listItem.classList.add('completed');
+                    } else {
+                        listItem.classList.remove('completed');
                     }
-                    listItem.classList.toggle('completed');
                 });
 
-                editBtn.addEventListener('click', () => {
+                editBtn.addEventListener('click', (e) => {
+                    e.stopPropagation(); // Prevent the parent li from toggling completion
                     const newText = prompt('Edit your task:', taskTextSpan.textContent);
                     if (newText !== null && newText.trim() !== '') {
                         taskTextSpan.textContent = newText.trim();
-                        listItem.classList.remove('completed'); // Uncheck when editing
+                        listItem.classList.remove('completed');
+                        checkbox.checked = false;
                     }
                 });
 
-                deleteBtn.addEventListener('click', () => {
+                deleteBtn.addEventListener('click', (e) => {
+                    e.stopPropagation(); // Prevent the parent li from toggling completion
                     if (confirm('Are you sure you want to delete this task?')) {
                         taskList.removeChild(listItem);
                     }
