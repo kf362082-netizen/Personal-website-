@@ -1,0 +1,499 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>Dino Game Pro</title>
+  <style>
+    :root {
+      --bg-color: #f7f7f7;
+      --text-color: #333;
+    }
+
+    body {
+      margin: 0;
+      font-family: 'Press Start 2P', Arial, sans-serif;
+      overflow: hidden;
+      height: 100vh;
+      width: 100vw;
+      background-color: var(--bg-color);
+      transition: background-color 1s linear;
+    }
+
+    /* ===== Professional / Competitive Styles ===== */
+    @import url('https://fonts.googleapis.com/css2?family=Press+Start+2P&display=swap');
+
+    .night-mode {
+      --bg-color: #1a1a1a;
+      --text-color: #fff;
+    }
+
+    /* Global Transitions for Night Mode */
+    #scoreDisplay {
+      transition: color 1s linear;
+    }
+
+    /* ===== Welcome Screen & Game Over (Restored Original Images) ===== */
+    #welcomeScreen {
+      position: fixed;
+      top: 0; left: 0;
+      width: 100%; height: 100%;
+      /* RESTORED: Your original welcome screen image */
+      background: url("unnamed.png") no-repeat center/cover;
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      flex-direction: column;
+      z-index: 10;
+    }
+    #welcomeScreen h1 {
+      color: white;
+      font-size: clamp(24px, 5vw, 48px);
+      text-shadow: 2px 2px 6px black;
+      margin-bottom: 20px;
+      opacity: 0;
+      transition: opacity 1.5s;
+      font-family: Arial, sans-serif;
+    }
+    #welcomeScreen h1.show { opacity: 1; }
+    #welcomeScreen button {
+      padding: 12px 24px;
+      font-size: clamp(16px, 3vw, 24px);
+      font-weight: bold;
+      background: #27ae60;
+      border: none;
+      border-radius: 12px;
+      color: white;
+      cursor: pointer;
+      opacity: 0;
+      transition: opacity 1.5s;
+    }
+    #welcomeScreen button.show { opacity: 1; }
+
+    /* ===== Game Area (Dynamic Backgrounds) ===== */
+    #game {
+      position: relative;
+      width: 100%;
+      height: 100%;
+      overflow: hidden;
+      display: none;
+
+      /* Initial background will be set in JavaScript now for dynamic changes */
+      background-size: cover;
+      background-repeat: repeat-x;
+      background-position: bottom; /* Anchor to the ground */
+      animation: scrollBg 8s linear infinite;
+      transition: background-image 1s ease-in-out; /* Smooth transition for background change */
+    }
+
+    @keyframes scrollBg {
+      from { background-position-x: 0; }
+      to { background-position-x: -1000px; } /* Only scroll the X-axis */
+    }
+
+    /* ===== Night Mode Overlay on Backgrounds (Optional but good contrast) ===== */
+    .night-mode #game::after {
+      content: "";
+      position: absolute;
+      top: 0; left: 0; right: 0; bottom: 0;
+      background-color: rgba(0, 0, 0, 0.4); /* Dark overlay */
+      z-index: 1;
+      pointer-events: none;
+    }
+
+
+    /* ===== Pause Overlay ===== */
+    #pauseOverlay {
+      position: absolute;
+      top: 0; left: 0; right: 0; bottom: 0;
+      background-color: rgba(0, 0, 0, 0.5);
+      color: white;
+      display: none;
+      justify-content: center;
+      align-items: center;
+      font-size: 4vw;
+      z-index: 15;
+      pointer-events: none;
+    }
+
+    /* ===== Dino & Obstacle (Minor adjustments) ===== */
+    #dino {
+      position: absolute;
+      bottom: 0;
+      left: 5%;
+      width: clamp(60px, 10vw, 140px);
+      height: clamp(60px, 10vw, 140px);
+      transition: height 0.1s;
+      z-index: 5;
+    }
+    #dino.duck {
+      height: clamp(30px, 5vw, 70px);
+      bottom: 0;
+    }
+    #dino img {
+      width: 100%; height: 100%; object-fit: contain;
+    }
+
+    #obstacle {
+      position: absolute;
+      bottom: 0;
+      width: clamp(40px, 6vw, 120px);
+      aspect-ratio: 1 / 1.3;
+      z-index: 4;
+    }
+    #obstacle.low-obstacle {
+      width: clamp(60px, 8vw, 160px);
+      aspect-ratio: 1 / 0.7;
+    }
+    #obstacle img {
+      width: 100%; height: 100%; object-fit: contain;
+    }
+
+    /* ===== Score & High Score ===== */
+    #scoreDisplay {
+      position: absolute;
+      top: 2%;
+      right: 2%;
+      font-size: clamp(14px, 1.8vw, 20px);
+      font-weight: bold;
+      color: var(--text-color);
+      text-align: right;
+      z-index: 10;
+    }
+    #scoreDisplay span { display: block; }
+    #score {
+      font-size: clamp(18px, 2.5vw, 28px);
+      margin-top: 5px;
+    }
+
+    /* ===== Game Over Screen (Competitive look) ===== */
+    #gameOver {
+      position: fixed;
+      top: 0; left: 0;
+      width: 100%; height: 100%;
+      display: none;
+      justify-content: center;
+      align-items: center;
+      flex-direction: column;
+      z-index: 20;
+      /* RESTORED: Your original game over image, now with an overlay */
+      background: linear-gradient(rgba(0,0,0,0.7), rgba(0,0,0,0.7)), url("gameover.png") no-repeat center/cover;
+    }
+
+    #achievementsBox {
+      z-index: 21;
+      background: rgba(46, 204, 113, 0.85);
+      padding: 30px 40px;
+      border-radius: 12px;
+      text-align: center;
+      color: white;
+      font-size: clamp(16px, 2.5vw, 24px);
+      font-weight: bold;
+      margin-bottom: 20px;
+      display: none;
+      box-shadow: 0 8px 25px rgba(0,0,0,0.5);
+      border: 3px solid white;
+    }
+    #achievementsBox h2 {
+      margin: 0 0 15px 0;
+      font-size: clamp(20px, 4vw, 36px);
+      color: #ffeb3b;
+    }
+
+    #tryAgain {
+      z-index: 21;
+      padding: 15px 30px;
+      font-size: clamp(18px, 3vw, 26px);
+      background: #e74c3c;
+      border: none;
+      border-radius: 8px;
+      color: white;
+      cursor: pointer;
+      display: none;
+      transition: background 0.3s;
+    }
+    #tryAgain:hover {
+      background: #c0392b;
+    }
+  </style>
+</head>
+<body>
+
+  <audio id="jumpSound" src="https://www.soundjay.com/buttons/sounds/button-3.mp3" preload="auto"></audio>
+  <audio id="gameOverSound" src="https://www.soundjay.com/misc/sounds/fail-buzzer-02.mp3" preload="auto"></audio>
+
+  <div id="welcomeScreen">
+    <h1 id="welcomeText"></h1>
+    <button id="startBtn" onclick="startGame()">Start Game</button>
+  </div>
+
+  <div id="game">
+    <div id="scoreDisplay">
+      <span id="highScoreText">HI: 00000</span>
+      <span id="score">00000</span>
+    </div>
+    <div id="pauseOverlay">PAUSED</div>
+
+    <div id="dino">
+      <img id="dinoImg" src="https://i.ibb.co/zR4dKQS/dino-run.gif" alt="Dino Running">
+    </div>
+    <div id="obstacle">
+      <img id="obstacleImg" src="Gemini_Generated_Image_k72fc8k72fc8k72f~2.png" alt="Obstacle">
+    </div>
+  </div>
+
+  <div id="gameOver">
+    <div id="achievementsBox">
+      <h2>GAME OVER!</h2>
+      <p id="finalScore">FINAL SCORE: 0</p>
+      <p id="obstaclesCleared">OBSTACLES: 0</p>
+      <p id="bestScore">NEW BEST: 0</p>
+    </div>
+    <button id="tryAgain" onclick="restartGame()">RETRY (SPACE)</button>
+  </div>
+
+  <script>
+    // Constants for elements
+    const dino = document.getElementById("dino");
+    const dinoImg = document.getElementById("dinoImg");
+    const obstacle = document.getElementById("obstacle");
+    const obstacleImg = document.getElementById("obstacleImg");
+    const scoreEl = document.getElementById("score");
+    const highScoreText = document.getElementById("highScoreText");
+    const welcomeScreen = document.getElementById("welcomeScreen");
+    const game = document.getElementById("game");
+    const gameOverScreen = document.getElementById("gameOver");
+    const tryAgainBtn = document.getElementById("tryAgain");
+    const welcomeText = document.getElementById("welcomeText");
+    const achievementsBox = document.getElementById("achievementsBox");
+    const finalScore = document.getElementById("finalScore");
+    const obstaclesCleared = document.getElementById("obstaclesCleared");
+    const bestScoreEl = document.getElementById("bestScore");
+    const pauseOverlay = document.getElementById("pauseOverlay");
+
+    // Audio elements
+    const jumpSound = document.getElementById("jumpSound");
+    const gameOverSound = document.getElementById("gameOverSound");
+
+    // Dino image URLs
+    const DINO_RUN_IMG = "https://i.ibb.co/zR4dKQS/dino-run.gif";
+    const DINO_JUMP_IMG = "https://i.ibb.co/VMy4P3s/dino-jump.png";
+    const DINO_DUCK_IMG = "https://i.ibb.co/1J911h2/dino-duck.gif";
+
+    // ✅ Background Image URLs (Restored & Named)
+    const BG_LEVEL_1 = "url('Gemini_Generated_Image_ej0qo4ej0qo4ej0q~2.png')";
+    const BG_LEVEL_2 = "url('Gemini_Generated_Image_5e6erl5e6erl5e6e (1)~2.png')";
+    const BG_LEVEL_3 = "url('Gemini_Generated_Image_8iip5v8iip5v8iip~2.png')";
+
+    // Game state variables
+    let dinoY = 0, velocity = 0;
+    let gravity = -0.7, jumpPower = 16;
+    let isAlive = false;
+    let isDucking = false;
+    let isPaused = false;
+    let gameLoop;
+
+    let obstacleX = window.innerWidth;
+    let baseSpeed = 6;
+    let speed = baseSpeed;
+    let score = 0, obstacleCount = 0;
+    let highScore = localStorage.getItem('dinoHighScore') || 0;
+    let isLowObstacle = false;
+
+    // Utility: Format score with leading zeros
+    const formatScore = (s) => String(Math.floor(s)).padStart(5, '0');
+
+    // ===== Welcome animations =====
+    window.onload = () => {
+      highScoreText.textContent = "HI: " + formatScore(highScore);
+      setTimeout(() => welcomeText.classList.add("show"), 500);
+      setTimeout(() => startBtn.classList.add("show"), 2000);
+    };
+
+    function startGame() {
+      welcomeScreen.style.display = "none";
+      game.style.display = "block";
+      resetGame();
+      // Set up key listeners once
+      document.addEventListener("keydown", handleKeyInput);
+      document.addEventListener("keyup", handleKeyInput);
+      document.addEventListener("touchstart", jump);
+      requestAnimationFrame(updateGame);
+    }
+
+    function resetGame() {
+      dinoY = 0; velocity = 0;
+      isAlive = true;
+      isDucking = false;
+      isPaused = false;
+      speed = baseSpeed;
+      score = 0; obstacleCount = 0;
+      gravity = -0.7; // Reset gravity
+
+      // Reset visuals and background
+      document.body.classList.remove("night-mode");
+      game.style.backgroundImage = BG_LEVEL_1; // Start with your first level BG
+      dinoImg.src = DINO_RUN_IMG;
+      dino.classList.remove("duck");
+      setNewObstacle();
+      scoreEl.textContent = formatScore(score);
+      highScoreText.textContent = "HI: " + formatScore(highScore);
+      gameOverScreen.style.display = "none";
+      achievementsBox.style.display = "none";
+      tryAgainBtn.style.display = "none";
+      pauseOverlay.style.display = "none";
+    }
+
+    function togglePause() {
+        if (!isAlive) return;
+
+        isPaused = !isPaused;
+        pauseOverlay.style.display = isPaused ? "flex" : "none";
+
+        if (!isPaused) {
+            requestAnimationFrame(updateGame);
+        }
+    }
+
+    function handleKeyInput(e) {
+      if (e.code === "Escape" || e.code === "KeyP") {
+        togglePause();
+        return;
+      }
+      if (!isAlive && e.code !== "Space") return;
+      if (isPaused) return;
+
+      if (e.type === "keydown") {
+        if (e.code === "Space") jump();
+        if (e.code === "ArrowDown" && !isDucking) duck();
+        if (!isAlive && e.code === "Space") restartGame();
+      } else if (e.type === "keyup") {
+        if (e.code === "ArrowDown") stopDucking();
+      }
+    }
+
+    function jump() {
+      if (dinoY === 0 && isAlive) {
+        if (isDucking) stopDucking();
+        velocity = jumpPower;
+        dinoImg.src = DINO_JUMP_IMG;
+        jumpSound.currentTime = 0;
+        jumpSound.play().catch(() => {});
+      }
+    }
+
+    function duck() {
+      if (dinoY === 0 && isAlive) {
+        isDucking = true;
+        dino.classList.add("duck");
+        dinoImg.src = DINO_DUCK_IMG;
+      }
+    }
+
+    function stopDucking() {
+      if (isAlive) {
+        isDucking = false;
+        dino.classList.remove("duck");
+        dinoImg.src = DINO_RUN_IMG;
+      }
+    }
+
+    function setNewObstacle() {
+      obstacleX = window.innerWidth;
+      // Chance of low obstacle increases from 30% up to 60% as score passes 500
+      isLowObstacle = Math.random() < (0.3 + Math.min(score / 500, 0.3));
+
+      obstacle.classList.toggle('low-obstacle', isLowObstacle);
+
+      if (isLowObstacle) {
+        obstacleImg.src = "https://i.ibb.co/N730cRz/ptera-fly.gif";
+      } else {
+        // Randomly choose between a couple of your obstacle image variations for variety
+        obstacleImg.src = Math.random() < 0.5
+            ? "Gemini_Generated_Image_k72fc8k72fc8k72f~2.png" // Cactus
+            : "https://i.ibb.co/6F5T6nL/cactus2.png"; // Alternate cactus/obstacle
+        let baseSize = 40 + Math.random() * 30;
+        obstacle.style.width = `clamp(${baseSize}px, ${baseSize/10}vw, ${baseSize * 2}px)`;
+      }
+    }
+
+
+    function updateGame(timestamp) {
+      if (!isAlive || isPaused) return;
+
+      // Dino physics
+      velocity += gravity;
+      dinoY += velocity;
+      if (dinoY < 0) {
+        dinoY = 0; velocity = 0;
+        if (!isDucking) dinoImg.src = DINO_RUN_IMG;
+      }
+      dino.style.bottom = dinoY + "px";
+
+      // Move obstacle
+      obstacleX -= speed;
+      if (obstacleX < -obstacle.offsetWidth) {
+        score++; obstacleCount++;
+        speed += 0.05; // Continuous speed increase
+
+        // ENHANCEMENT: Score-based aesthetics and difficulty
+        if (score % 100 === 0 && score > 0) { // Toggle night mode every 100 points
+            document.body.classList.toggle("night-mode");
+        }
+        if (score === 25) { // Change to your second specified BG at score 25
+            game.style.backgroundImage = BG_LEVEL_2;
+        } else if (score === 50) { // Change to your third specified BG at score 50
+            game.style.backgroundImage = BG_LEVEL_3;
+        } else if (score > 50 && score % 200 === 0) {
+            gravity -= 0.02; // Jumps get harder at higher scores
+        }
+
+        scoreEl.textContent = formatScore(score);
+        setNewObstacle();
+      }
+      obstacle.style.left = obstacleX + "px";
+
+      // Collision check (Bounding Box)
+      let dinoRect = dino.getBoundingClientRect();
+      let obstacleRect = obstacle.getBoundingClientRect();
+
+      let x_overlap = dinoRect.right > obstacleRect.left && dinoRect.left < obstacleRect.right;
+      let y_overlap = dinoRect.bottom > obstacleRect.top;
+
+      if (x_overlap && y_overlap) {
+        gameOver();
+        return;
+      }
+
+      gameLoop = requestAnimationFrame(updateGame);
+    }
+
+    function gameOver() {
+      isAlive = false;
+      cancelAnimationFrame(gameLoop);
+      gameOverSound.currentTime = 0;
+      gameOverSound.play().catch(() => {});
+
+      let isNewBest = false;
+      if (score > highScore) {
+        highScore = score;
+        localStorage.setItem('dinoHighScore', highScore);
+        isNewBest = true;
+      }
+
+      // Display Game Over Screen
+      gameOverScreen.style.display = "flex";
+      finalScore.textContent = "FINAL SCORE: " + formatScore(score);
+      obstaclesCleared.textContent = "OBSTACLES: " + obstacleCount;
+      bestScoreEl.textContent = (isNewBest ? "NEW BEST: " : "BEST SCORE: ") + formatScore(highScore);
+      achievementsBox.style.display = "block";
+      tryAgainBtn.style.display = "inline-block";
+    }
+
+    function restartGame() {
+      resetGame();
+      requestAnimationFrame(updateGame);
+    }
+  </script>
+</body>
+</html>
